@@ -153,10 +153,9 @@ spec:
               mountPath: /etc/nginx/conf.d/default.conf
               subPath: default.conf
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: 80
-            initialDelaySeconds: 15
+            initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 3
           resources:
