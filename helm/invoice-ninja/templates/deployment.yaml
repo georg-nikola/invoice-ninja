@@ -1,0 +1,169 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "invoice-ninja.fullname" . }}
+  labels:
+    {{- include "invoice-ninja.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "invoice-ninja.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "invoice-ninja.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: 1500
+      initContainers:
+        - name: fix-permissions
+          image: busybox
+          command:
+            - sh
+            - -c
+            - "chown -R 1500:1500 /var/www/html/public /var/www/html/storage"
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: public
+              mountPath: /var/www/html/public
+            - name: storage
+              mountPath: /var/www/html/storage
+      containers:
+        - name: invoice-ninja
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: php-fpm
+              containerPort: 9000
+              protocol: TCP
+          env:
+            - name: APP_URL
+              value: "https://{{ .Values.ingress.host }}"
+            - name: DB_HOST
+              value: "{{ include "invoice-ninja.fullname" . }}-mysql"
+            - name: DB_DATABASE
+              value: {{ .Values.mysql.database | quote }}
+            - name: DB_USERNAME
+              value: {{ .Values.mysql.user | quote }}
+            - name: DB_PORT
+              value: "3306"
+            - name: REDIS_HOST
+              value: "{{ include "invoice-ninja.fullname" . }}-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: APP_ENV
+              value: {{ .Values.env.APP_ENV | quote }}
+            - name: APP_DEBUG
+              value: {{ .Values.env.APP_DEBUG | quote }}
+            - name: REQUIRE_HTTPS
+              value: {{ .Values.env.REQUIRE_HTTPS | quote }}
+            - name: TRUSTED_PROXIES
+              value: {{ .Values.env.TRUSTED_PROXIES | quote }}
+            - name: PDF_GENERATOR
+              value: {{ .Values.env.PDF_GENERATOR | quote }}
+            - name: IS_DOCKER
+              value: {{ .Values.env.IS_DOCKER | quote }}
+            - name: FILESYSTEM_DISK
+              value: {{ .Values.env.FILESYSTEM_DISK | quote }}
+            - name: CACHE_DRIVER
+              value: {{ .Values.env.CACHE_DRIVER | quote }}
+            - name: QUEUE_CONNECTION
+              value: {{ .Values.env.QUEUE_CONNECTION | quote }}
+            - name: SESSION_DRIVER
+              value: {{ .Values.env.SESSION_DRIVER | quote }}
+            - name: DB_STRICT
+              value: {{ .Values.env.DB_STRICT | quote }}
+            - name: SCOUT_DRIVER
+              value: {{ .Values.env.SCOUT_DRIVER | quote }}
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: invoice-ninja-secrets
+                  key: APP_KEY
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: invoice-ninja-secrets
+                  key: DB_PASSWORD
+            - name: IN_USER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: invoice-ninja-secrets
+                  key: IN_USER_EMAIL
+            - name: IN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: invoice-ninja-secrets
+                  key: IN_PASSWORD
+            - name: MAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: invoice-ninja-secrets
+                  key: MAIL_PASSWORD
+                  optional: true
+          volumeMounts:
+            - name: public
+              mountPath: /var/www/html/public
+            - name: storage
+              mountPath: /var/www/html/storage
+            - name: chrome-config
+              mountPath: /var/www/.config
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+        - name: nginx
+          image: "{{ .Values.nginx.image.repository }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          volumeMounts:
+            - name: public
+              mountPath: /var/www/html/public
+              readOnly: true
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.nginx.resources | nindent 12 }}
+
+      volumes:
+        - name: public
+          persistentVolumeClaim:
+            claimName: {{ include "invoice-ninja.fullname" . }}-public
+        - name: storage
+          persistentVolumeClaim:
+            claimName: {{ include "invoice-ninja.fullname" . }}-storage
+        - name: chrome-config
+          emptyDir:
+            medium: Memory
+        - name: nginx-config
+          configMap:
+            name: {{ include "invoice-ninja.fullname" . }}-nginx
+
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

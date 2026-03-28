@@ -1,0 +1,86 @@
+replicaCount: 1
+
+image:
+  repository: invoiceninja/invoiceninja
+  tag: "5.13.9"
+  pullPolicy: IfNotPresent
+
+nginx:
+  image:
+    repository: nginx
+    tag: stable-alpine
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  host: invoices.georg-nikola.com
+  middlewares: []
+  authentikOutpost: false
+
+mysql:
+  enabled: true
+  image:
+    repository: mysql
+    tag: "8.0"
+  database: ninja
+  user: ninja
+  storage: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: alpine
+  resources:
+    requests:
+      cpu: 25m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+persistence:
+  public:
+    size: 2Gi
+  storage:
+    size: 5Gi
+
+env:
+  APP_ENV: production
+  APP_DEBUG: "false"
+  REQUIRE_HTTPS: "true"
+  TRUSTED_PROXIES: "*"
+  PDF_GENERATOR: snappdf
+  IS_DOCKER: "true"
+  FILESYSTEM_DISK: debian_docker
+  CACHE_DRIVER: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+  DB_STRICT: "false"
+  SCOUT_DRIVER: "null"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 768Mi
+
+tolerations: []

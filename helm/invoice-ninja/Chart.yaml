@@ -1,0 +1,6 @@
+apiVersion: v2
+name: invoice-ninja
+description: Invoice Ninja v5 - Open Source Invoicing
+type: application
+version: 1.0.0
+appVersion: "5.13.9"

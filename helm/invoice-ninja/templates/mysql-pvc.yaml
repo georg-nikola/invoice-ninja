@@ -1,0 +1,5 @@
+{{/*
+MySQL storage is provisioned via volumeClaimTemplates in mysql-statefulset.yaml.
+This file is intentionally left as a placeholder to maintain the documented
+directory structure. No standalone PVC is needed for MySQL.
+*/}}
