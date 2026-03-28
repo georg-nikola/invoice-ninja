@@ -17,15 +17,19 @@ spec:
       securityContext:
         fsGroup: 1500
       initContainers:
-        - name: copy-public
+        - name: copy-assets
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command:
             - sh
             - -c
-            - "cp -rn /var/www/app/public/* /mnt/public/ 2>/dev/null || true"
+            - |
+              cp -rn /var/www/app/public/* /mnt/public/ 2>/dev/null || true
+              cp -rn /var/www/app/storage/* /mnt/storage/ 2>/dev/null || true
           volumeMounts:
             - name: public
               mountPath: /mnt/public
+            - name: storage
+              mountPath: /mnt/storage
         - name: fix-permissions
           image: busybox
           command:
