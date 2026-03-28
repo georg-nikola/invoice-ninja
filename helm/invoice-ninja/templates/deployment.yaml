@@ -35,14 +35,14 @@ spec:
           command:
             - sh
             - -c
-            - "chown -R 1500:1500 /var/www/html/public /var/www/html/storage"
+            - "chown -R 1500:1500 /var/www/app/public /var/www/app/storage"
           securityContext:
             runAsUser: 0
           volumeMounts:
             - name: public
-              mountPath: /var/www/html/public
+              mountPath: /var/www/app/public
             - name: storage
-              mountPath: /var/www/html/storage
+              mountPath: /var/www/app/storage
       containers:
         - name: invoice-ninja
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -118,9 +118,9 @@ spec:
                   optional: true
           volumeMounts:
             - name: public
-              mountPath: /var/www/html/public
+              mountPath: /var/www/app/public
             - name: storage
-              mountPath: /var/www/html/storage
+              mountPath: /var/www/app/storage
             - name: chrome-config
               mountPath: /var/www/.config
           readinessProbe:
@@ -147,7 +147,7 @@ spec:
               protocol: TCP
           volumeMounts:
             - name: public
-              mountPath: /var/www/html/public
+              mountPath: /var/www/app/public
               readOnly: true
             - name: nginx-config
               mountPath: /etc/nginx/conf.d/default.conf
